@@ -7,6 +7,11 @@ from src.config import INPUT_CONSTRAINTS, MODELS_DIR
 import os
 from pycaret.classification import load_model, predict_model
 
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import io
 
 # Konfigurasi Halaman Streamlit
 st.set_page_config(
@@ -15,7 +20,12 @@ st.set_page_config(
     layout="centered",
 )
 
-API_URL = "http://127.0.0.1:8000/predict"
+# Mengambil URL dari Environment Variable Docker
+DEFAULT_API_URL = "http://127.0.0.1:8000/predict"
+API_URL = os.getenv("API_URL", DEFAULT_API_URL)
+
+if not API_URL.endswith("/predict"):
+    API_URL = API_URL.rstrip("/") + "/predict"
 
 # Inisialisasi Session State
 if "page" not in st.session_state:
@@ -24,9 +34,7 @@ if "page" not in st.session_state:
 if "form_data" not in st.session_state:
   st.session_state.form_data = {}
 
-# ---------------------------------------------------------
 # 2. Header & Progress Bar
-# ---------------------------------------------------------
 with st.container():
     st.markdown(
         """
@@ -114,6 +122,7 @@ if st.session_state.page == 1:
         employee_name = st.text_input(
             "Employee Name",
             value=st.session_state.form_data.get("Employee_Name", ""),
+            placeholder="Please insert employee name...",
         )
 
         c_age = INPUT_CONSTRAINTS["Age"]
@@ -121,26 +130,27 @@ if st.session_state.page == 1:
             "Age",
             min_value=int(c_age["min_value"]),
             max_value=int(c_age["max_value"]),
-            value=int(st.session_state.form_data.get("Age", 26)),
+            value=st.session_state.form_data.get("Age", None),
+            placeholder="Please insert age...",
         )
 
         gender = st.selectbox(
             "Gender",
-            options=INPUT_CONSTRAINTS["Gender"]["choices"],
-            index=get_choice_index("Gender", "Female"),
+            options=["Select Gender"] + list(INPUT_CONSTRAINTS["Gender"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Gender") else get_choice_index("Gender", st.session_state.form_data.get("Gender")) + 1,
         )
 
         marital_status = st.selectbox(
             "Marital Status",
-            options=INPUT_CONSTRAINTS["Marital_Status"]["choices"],
-            index=get_choice_index("Marital_Status", "Divorced"),
+            options=["Select Marital Status"] + list(INPUT_CONSTRAINTS["Marital_Status"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Marital_Status") else get_choice_index("Marital_Status", st.session_state.form_data.get("Marital_Status")) + 1,
         )
 
     with col2:
         education_level = st.selectbox(
             "Education Level",
-            options=INPUT_CONSTRAINTS["Education_Level"]["choices"],
-            index=get_choice_index("Education_Level", "Bachelor"),
+            options=["Select Education Level"] + list(INPUT_CONSTRAINTS["Education_Level"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Education_Level") else get_choice_index("Education_Level", st.session_state.form_data.get("Education_Level")) + 1,
         )
 
         c_dist = INPUT_CONSTRAINTS["Distance_From_Home"]
@@ -148,7 +158,8 @@ if st.session_state.page == 1:
             "Distance From Home (KM)",
             min_value=int(c_dist["min_value"]),
             max_value=int(c_dist["max_value"]),
-            value=int(st.session_state.form_data.get("Distance_From_Home", 6)),
+            value=st.session_state.form_data.get("Distance_From_Home", None),
+            placeholder="Please insert distance from home...",
         )
 
         c_commute = INPUT_CONSTRAINTS["Commute_Time_Minutes"]
@@ -156,24 +167,28 @@ if st.session_state.page == 1:
             "Commute Time To Office (Minute)",
             min_value=int(c_commute["min_value"]),
             max_value=int(c_commute["max_value"]),
-            value=int(st.session_state.form_data.get("Commute_Time_Minutes", 23)),
+            value=st.session_state.form_data.get("Commute_Time_Minutes", None),
+            placeholder="Please insert commute time...",
         )
 
     col_space, col_next = st.columns(2)
     
     with col_next:
         if st.button("Next ➡️", use_container_width=True):
-            st.session_state.form_data.update({
-                "Employee_Name": employee_name if employee_name else "Anonymous",
-                "Age": age,
-                "Gender": gender,
-                "Marital_Status": marital_status,
-                "Education_Level": education_level,
-                "Distance_From_Home": distance_from_home,
-                "Commute_Time_Minutes": commute_time_minutes,
-            })
-            st.session_state.page = 2
-            st.rerun()
+            if age is None or distance_from_home is None or commute_time_minutes is None or gender == "Select Gender" or marital_status == "Select Marital Status" or education_level == "Select Education Level":
+                st.warning("⚠️ Please fill in all required fields before proceeding!")
+            else:
+                st.session_state.form_data.update({
+                    "Employee_Name": employee_name if employee_name else "Anonymous",
+                    "Age": age,
+                    "Gender": gender,
+                    "Marital_Status": marital_status,
+                    "Education_Level": education_level,
+                    "Distance_From_Home": distance_from_home,
+                    "Commute_Time_Minutes": commute_time_minutes,
+                })
+                st.session_state.page = 2
+                st.rerun()
 
 
 # PAGE 2: Struktur Pekerjaan Karyawan
@@ -185,27 +200,27 @@ elif st.session_state.page == 2:
     with col1:
         department = st.selectbox(
             "Department",
-            options=INPUT_CONSTRAINTS["Department"]["choices"],
-            index=get_choice_index("Department", "Marketing"),
+            options=["Select Department"] + list(INPUT_CONSTRAINTS["Department"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Department") else get_choice_index("Department", st.session_state.form_data.get("Department")) + 1,
         )
 
         job_role = st.selectbox(
             "Job Role",
-            options=INPUT_CONSTRAINTS["Job_Role"]["choices"],
-            index=get_choice_index("Job_Role", "Marketing Manager"),
+            options=["Select Job Role"] + list(INPUT_CONSTRAINTS["Job_Role"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Job_Role") else get_choice_index("Job_Role", st.session_state.form_data.get("Job_Role")) + 1,
         )
 
         employment_type = st.selectbox(
             "Employment Type",
-            options=INPUT_CONSTRAINTS["Employment_Type"]["choices"],
-            index=get_choice_index("Employment_Type", "Part-Time"),
+            options=["Select Employment Type"] + list(INPUT_CONSTRAINTS["Employment_Type"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Employment_Type") else get_choice_index("Employment_Type", st.session_state.form_data.get("Employment_Type")) + 1,
         )
 
     with col2:
         job_level = st.selectbox(
             "Job Level",
-            options=INPUT_CONSTRAINTS["Job_Level"]["choices"],
-            index=get_choice_index("Job_Level", 2),
+            options=["Select Job Level"] + list(INPUT_CONSTRAINTS["Job_Level"]["choices"]),
+            index=0 if not st.session_state.form_data.get("Job_Level") else get_choice_index("Job_Level", st.session_state.form_data.get("Job_Level")) + 1,
         )
 
         c_team = INPUT_CONSTRAINTS["Team_Size"]
@@ -213,7 +228,8 @@ elif st.session_state.page == 2:
             "Team Size",
             min_value=int(c_team["min_value"]),
             max_value=int(c_team["max_value"]),
-            value=int(st.session_state.form_data.get("Team_Size", 7)),
+            value=st.session_state.form_data.get("Team_Size", None),
+            placeholder="Please insert team size...",
         )
 
         c_proj = INPUT_CONSTRAINTS["Number_Of_Projects"]
@@ -221,7 +237,8 @@ elif st.session_state.page == 2:
             "Total Project",
             min_value=int(c_proj["min_value"]),
             max_value=int(c_proj["max_value"]),
-            value=int(st.session_state.form_data.get("Number_Of_Projects", 7)),
+            value=st.session_state.form_data.get("Number_Of_Projects", None),
+            placeholder="Please insert total projects...",
         )
 
     col_prev, col_next = st.columns([1, 1])
@@ -231,16 +248,19 @@ elif st.session_state.page == 2:
             st.rerun()
     with col_next:
         if st.button("Next ➡️", use_container_width=True):
-            st.session_state.form_data.update({
-                "Department": department,
-                "Job_Role": job_role,
-                "Employment_Type": employment_type,
-                "Job_Level": job_level,
-                "Team_Size": team_size,
-                "Number_Of_Projects": number_of_projects,
-            })
-            st.session_state.page = 3
-            st.rerun()
+            if team_size is None or number_of_projects is None or department == "Select Department" or job_role == "Select Job Role" or employment_type == "Select Employment Type" or job_level == "Select Job Level":
+                st.warning("⚠️ Please fill in all required fields before proceeding!")
+            else:
+                st.session_state.form_data.update({
+                    "Department": department,
+                    "Job_Role": job_role,
+                    "Employment_Type": employment_type,
+                    "Job_Level": job_level,
+                    "Team_Size": team_size,
+                    "Number_Of_Projects": number_of_projects,
+                })
+                st.session_state.page = 3
+                st.rerun()
 
 # PAGE 3: Finansial dan Karier Karyawan
 elif st.session_state.page == 3:
@@ -254,7 +274,8 @@ elif st.session_state.page == 3:
           "Monthly Salary (Dollar)",
           min_value=int(c_inc["min_value"]),
           max_value=int(c_inc["max_value"]),
-          value=int(st.session_state.form_data.get("Monthly_Income", 7673)),
+          value=st.session_state.form_data.get("Monthly_Income", None),
+          placeholder="Please insert monthly salary...",
       )
 
       c_hike = INPUT_CONSTRAINTS["Salary_Hike_Percent"]
@@ -262,7 +283,8 @@ elif st.session_state.page == 3:
           "Salary Hike Percent",
           min_value=float(c_hike["min_value"]),
           max_value=float(c_hike["max_value"]),
-          value=float(st.session_state.form_data.get("Salary_Hike_Percent", 11.0)),
+          value=st.session_state.form_data.get("Salary_Hike_Percent", None),
+          placeholder="Please insert salary hike percent...",
       )
 
       c_yac = INPUT_CONSTRAINTS["Years_At_Company"]
@@ -270,7 +292,8 @@ elif st.session_state.page == 3:
           "Years At Company",
           min_value=int(c_yac["min_value"]),
           max_value=int(c_yac["max_value"]),
-          value=int(st.session_state.form_data.get("Years_At_Company", 1)),
+          value=st.session_state.form_data.get("Years_At_Company", None),
+          placeholder="Please insert years at company...",
       ) 
 
   with col2:
@@ -279,19 +302,20 @@ elif st.session_state.page == 3:
           "Years In Current Role",
           min_value=int(c_ycr["min_value"]),
           max_value=int(c_ycr["max_value"]),
-          value=int(st.session_state.form_data.get("Years_In_Current_Role", 0)),
+          value=st.session_state.form_data.get("Years_In_Current_Role", None),
+          placeholder="Please insert years in role...",
       )
 
       promotion_last_5_years = st.selectbox(
           "Promotion In Last 5 Years",
-          options=INPUT_CONSTRAINTS["Promotion_Last_5_Years"]["choices"],
-          index=get_choice_index("Promotion_Last_5_Years", "No"),
+          options=["Select Option"] + list(INPUT_CONSTRAINTS["Promotion_Last_5_Years"]["choices"]),
+          index=0 if not st.session_state.form_data.get("Promotion_Last_5_Years") else get_choice_index("Promotion_Last_5_Years", st.session_state.form_data.get("Promotion_Last_5_Years")) + 1,
       )
 
       stock_option = st.selectbox(
           "Stock Option",
-          options=INPUT_CONSTRAINTS["Stock_Option"]["choices"],
-          index=get_choice_index("Stock_Option", "No"),
+          options=["Select Option"] + list(INPUT_CONSTRAINTS["Stock_Option"]["choices"]),
+          index=0 if not st.session_state.form_data.get("Stock_Option") else get_choice_index("Stock_Option", st.session_state.form_data.get("Stock_Option")) + 1,
       )
 
   col_prev, col_next = st.columns([1, 1])
@@ -301,16 +325,19 @@ elif st.session_state.page == 3:
       st.rerun()
   with col_next:
     if st.button("Next ➡️", use_container_width=True):
-      st.session_state.form_data.update({
-          "Monthly_Income": monthly_income,
-          "Salary_Hike_Percent": salary_hike_percent,
-          "Years_At_Company": years_at_company,
-          "Years_In_Current_Role": years_in_current_role,
-          "Promotion_Last_5_Years": promotion_last_5_years,
-          "Stock_Option": stock_option,
-      })
-      st.session_state.page = 4
-      st.rerun()
+      if monthly_income is None or salary_hike_percent is None or years_at_company is None or years_in_current_role is None or promotion_last_5_years == "Select Option" or stock_option == "Select Option":
+          st.warning("⚠️ Please fill in all required fields before proceeding!")
+      else:
+          st.session_state.form_data.update({
+              "Monthly_Income": monthly_income,
+              "Salary_Hike_Percent": salary_hike_percent,
+              "Years_At_Company": years_at_company,
+              "Years_In_Current_Role": years_in_current_role,
+              "Promotion_Last_5_Years": promotion_last_5_years,
+              "Stock_Option": stock_option,
+          })
+          st.session_state.page = 4
+          st.rerun()
 
 # PAGE 4: Sistem Kerja dan Kehadiran Karyawan
 elif st.session_state.page == 4:
@@ -321,20 +348,20 @@ elif st.session_state.page == 4:
   with col1:
       overtime = st.selectbox(
           "Overtime",
-          options=INPUT_CONSTRAINTS["Overtime"]["choices"],
-          index=get_choice_index("Overtime", "Yes"),
+          options=["Select Option"] + list(INPUT_CONSTRAINTS["Overtime"]["choices"]),
+          index=0 if not st.session_state.form_data.get("Overtime") else get_choice_index("Overtime", st.session_state.form_data.get("Overtime")) + 1,
       )
 
       remote_work = st.selectbox(
           "Work From Anywhere",
-          options=INPUT_CONSTRAINTS["Remote_Work"]["choices"],
-          index=get_choice_index("Remote_Work", "No"),
+          options=["Select Option"] + list(INPUT_CONSTRAINTS["Remote_Work"]["choices"]),
+          index=0 if not st.session_state.form_data.get("Remote_Work") else get_choice_index("Remote_Work", st.session_state.form_data.get("Remote_Work")) + 1,
       )
 
       business_travel = st.selectbox(
           "Business Travel",
-          options=INPUT_CONSTRAINTS["Business_Travel"]["choices"],
-          index=get_choice_index("Business_Travel", "Never"),
+          options=["Select Option"] + list(INPUT_CONSTRAINTS["Business_Travel"]["choices"]),
+          index=0 if not st.session_state.form_data.get("Business_Travel") else get_choice_index("Business_Travel", st.session_state.form_data.get("Business_Travel")) + 1,
       )
 
   with col2:
@@ -343,7 +370,8 @@ elif st.session_state.page == 4:
           "Total Absence (Day)",
           min_value=int(c_abs["min_value"]),
           max_value=int(c_abs["max_value"]),
-          value=int(st.session_state.form_data.get("Absence_Days", 7)),
+          value=st.session_state.form_data.get("Absence_Days", None),
+          placeholder="Please insert absence days...",
       )
 
       c_train = INPUT_CONSTRAINTS["Training_Hours_Last_Year"]
@@ -351,7 +379,8 @@ elif st.session_state.page == 4:
           "Total Training In Last Year (Hour)",
           max_value=int(c_train["max_value"]),
           min_value=int(c_train["min_value"]),
-          value=int(st.session_state.form_data.get("Training_Hours_Last_Year", 58)),
+          value=st.session_state.form_data.get("Training_Hours_Last_Year", None),
+          placeholder="Please insert training hours...",
       )
 
   col_prev, col_next = st.columns([1, 1])
@@ -361,15 +390,18 @@ elif st.session_state.page == 4:
       st.rerun()
   with col_next:
     if st.button("Next ➡️", use_container_width=True):
-      st.session_state.form_data.update({
-          "Overtime": overtime,
-          "Remote_Work": remote_work,
-          "Business_Travel": business_travel,
-          "Absence_Days": absence_days,
-          "Training_Hours_Last_Year": training_hours_last_year,
-      })
-      st.session_state.page = 5
-      st.rerun()
+      if absence_days is None or training_hours_last_year is None or overtime == "Select Option" or remote_work == "Select Option" or business_travel == "Select Option":
+          st.warning("⚠️ Please fill in all required fields before proceeding!")
+      else:
+          st.session_state.form_data.update({
+              "Overtime": overtime,
+              "Remote_Work": remote_work,
+              "Business_Travel": business_travel,
+              "Absence_Days": absence_days,
+              "Training_Hours_Last_Year": training_hours_last_year,
+          })
+          st.session_state.page = 5
+          st.rerun()
 
 # PAGE 5: Skor Kepuasan dan Rating Karyawan
 elif st.session_state.page == 5:
@@ -378,7 +410,7 @@ elif st.session_state.page == 5:
     def render_slider(label, key):
         choices = INPUT_CONSTRAINTS[key]["choices"]
         min_val, max_val = min(choices), max(choices)
-        curr_val = st.session_state.form_data.get(key, 3)
+        curr_val = st.session_state.form_data.get(key, min_val)
         return st.slider(
             label, min_value=min_val, max_value=max_val, value=int(curr_val)
         )
@@ -471,11 +503,13 @@ elif st.session_state.page == 6:
         "The visualization below displays the key factors driving the model's decisions."
     )
 
-    # Proses Permutation Importance
-    try:
-        from pycaret.classification import load_model, predict_model
-        from src.config import MODELS_DIR
+    # Variabel untuk Menyimpan Path Gambar Grafik Sementara untuk PDF
+    temp_img_path = "temp_importance_chart.png"
+    chart_generated = False
+    chart_title_pdf = "Key Driving Factors Analysis"
 
+    # Proses Occulusion Sensitivity
+    try:
         @st.cache_resource
         def load_cached_model():
             model_path = os.path.join(MODELS_DIR, "best_model")
@@ -506,7 +540,7 @@ elif st.session_state.page == 6:
         else:
             base_prob = pred_prob
 
-        # Menghitung Dampak Permutasi Setiap Feature
+        # Menghitung Dampak Feature
         importance_results = []
         for col in input_dict.keys():
             if col not in sample_data.columns:
@@ -538,7 +572,7 @@ elif st.session_state.page == 6:
                 else:
                     new_prob = base_prob
 
-                # Dampak berarah: Positif = mendorong ke Resign dan Negatif = menahan ke Stayed
+                # Dampak Feature berarah: Positif = mendorong ke Resign dan Negatif = menahan ke Stayed
                 impact = base_prob - new_prob
                 importance_results.append({
                     "Feature": col,
@@ -550,7 +584,7 @@ elif st.session_state.page == 6:
 
         df_importance = pd.DataFrame(importance_results)
 
-        # Membuat Visualisasi Permutation Importance
+        # Membuat Visualisasi Occulusion Sensitivity
         plt.figure(figsize=(10, 5))
 
         if len(df_importance) > 0:
@@ -570,9 +604,11 @@ elif st.session_state.page == 6:
                     df_filtered.sort_values(by="Abs_Dampak", ascending=True)
                     .tail(5)
                 )
-                chart_title = "Main Factors Triggering Not to Resign"
+                chart_title = "Key Factors Triggering Not to Resign"
                 bar_color = "#2ecc71"
                 x_values = df_filtered["Abs_Dampak"]
+
+            chart_title_pdf = chart_title
 
             if len(df_filtered) > 0:
                 y_labels = [
@@ -591,9 +627,11 @@ elif st.session_state.page == 6:
                 )
                 
                 plt.xticks([])
-                
                 plt.grid(axis="x", linestyle="--", alpha=0.5)
                 plt.tight_layout()
+
+                plt.savefig(temp_img_path, bbox_inches='tight', dpi=300)
+                chart_generated = True
 
                 st.pyplot(plt)
                 plt.close()
@@ -610,12 +648,67 @@ elif st.session_state.page == 6:
 
     st.markdown("---")
 
-    col_reset, col_back = st.columns([1, 1])
+    # Function untuk Pembuatan PDF
+    def generate_pdf_report(name, status, prob, fig_path, section_title):
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        story = []
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#2b6cb0'),
+            spaceAfter=10
+        )
+        
+        normal_bold = ParagraphStyle(
+            'NormalBold',
+            parent=styles['Normal'],
+            fontSize=11,
+            spaceAfter=6
+        )
+
+        # Header Laporan
+        story.append(Paragraph("Resignal: Employee Attrition Prediction Report", title_style))
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(f"<b>Employee Name:</b> {name}", normal_bold))
+        story.append(Paragraph(f"<b>Prediction Status:</b> {status}", normal_bold))
+        story.append(Paragraph(f"<b>Resignation Probability:</b> {prob * 100:.1f}%", normal_bold))
+        story.append(Spacer(1, 10))
+        
+        # Menyisipkan Grafik Sesuai Kondisi Dinamis (Resign / Stayed)
+        if chart_generated and os.path.exists(fig_path):
+            story.append(Paragraph(f"<b>{section_title}</b>", styles['Heading2']))
+            story.append(Spacer(1, 6))
+            story.append(RLImage(fig_path, width=440, height=220))
+            
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    col_pdf, col_reset, col_back = st.columns([1.2, 1, 1])
+
+    with col_pdf:
+        try:
+            pdf_data = generate_pdf_report(emp_name, pred_result, pred_prob, temp_img_path, chart_title_pdf)
+            st.download_button(
+                label="📥 Download PDF Report",
+                data=pdf_data,
+                file_name=f"Resignal_Prediction_Report_{emp_name.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        except Exception as pdf_err:
+            st.error(f"PDF Error: {pdf_err}")
+
     with col_reset:
-        if st.button("🔄 Count Other Employees", use_container_width=True):
+        if st.button("🔄 Predict Other Employees", use_container_width=True):
             st.session_state.form_data = {}
             st.session_state.page = 1
             st.rerun()
+            
     with col_back:
         if st.button("✏️ Edit Data Input", use_container_width=True):
             st.session_state.page = 5

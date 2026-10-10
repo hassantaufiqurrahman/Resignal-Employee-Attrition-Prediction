@@ -20,10 +20,6 @@ Thumbs.db
 # Environment Variables / Credentials
 .env
 
-# Hasil Split Data dan Best Model
-data/train_data.csv
-data/test_data.csv
-models/best_model.pkl
-
-# Mengabaikan semua file log
+# Mengabaikan semua file log dan png
 *.log
+*.png
