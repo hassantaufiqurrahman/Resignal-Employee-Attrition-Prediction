@@ -1,0 +1,29 @@
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Environment Variables / Credentials
+.env
+
+# Hasil Split Data dan Best Model
+data/train_data.csv
+data/test_data.csv
+models/best_model.pkl
+
+# Mengabaikan semua file log
+*.log

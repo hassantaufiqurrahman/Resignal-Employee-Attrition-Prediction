@@ -1,0 +1,14 @@
+pycaret==3.3.2
+pandas==2.1.4 
+numpy==1.26.4
+matplotlib==3.7.5
+seaborn==0.13.2
+scikit-learn==1.4.2
+joblib==1.3.2
+pydantic==2.13.5
+fastapi==0.142.2
+uvicorn==0.54.0
+sqlalchemy==2.1.3
+psycopg2-binary==2.9.13
+streamlit==1.65.0
+requests==2.34.2

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_resignal
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: resignal_fpdsml
+      POSTGRES_DB: resignal_attrition_prediction
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: fastapi_resignal
+    ports:
+      - "8000:8000"
+    volumes:          
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:resignal_fpdsml@db:5432/resignal_attrition_prediction
+    depends_on:
+      - db
+    restart: always
+
+  streamlit:
+    build: .
+    container_name: streamlit_resignal
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: always
+
+volumes:
+  pgdata:
