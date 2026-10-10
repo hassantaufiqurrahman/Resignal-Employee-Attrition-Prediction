@@ -1,4 +1,4 @@
-# Resignal: Employee Attrition Prediction & Decision Support System
+# Resignal: Employee Attrition Prediction
 
 **Final Project Dibimbing Data Science & AI Machine Learning Batch 42_Hassan Taufiqurrahman**
 
