@@ -498,9 +498,10 @@ elif st.session_state.page == 6:
         st.progress(float(pred_prob))
 
     st.markdown("---")
-    st.subheader("🔍 Feature Importance")
+    st.subheader("🔍 Key Driving Factors")
     st.info(
-        "The visualization below displays the key factors driving the model's decisions."
+        "💡 The visualization below displays the key factors influencing the prediction "
+        "based on the specific data of the employee entered at this moment."
     )
 
     # Variabel untuk Menyimpan Path Gambar Grafik Sementara untuk PDF
@@ -508,7 +509,7 @@ elif st.session_state.page == 6:
     chart_generated = False
     chart_title_pdf = "Key Driving Factors Analysis"
 
-    # Proses Occulusion Sensitivity
+    # Proses Occlusion Sensitivity
     try:
         @st.cache_resource
         def load_cached_model():
@@ -549,6 +550,8 @@ elif st.session_state.page == 6:
             original_val = sample_data.loc[0, col]
             temp_df = sample_data.copy()
 
+            # Mengubah Nilai Feature Menjadi 0 atau "Unknown" 
+            # untuk Melihat Seberapa Besar Perubahan Probabilitas Prediksinya
             if pd.api.types.is_numeric_dtype(temp_df[col]):
                 temp_df.loc[0, col] = 0
             else:
@@ -572,7 +575,7 @@ elif st.session_state.page == 6:
                 else:
                     new_prob = base_prob
 
-                # Dampak Feature berarah: Positif = mendorong ke Resign dan Negatif = menahan ke Stayed
+                # Dampak Feature Positif = mendorong ke Resign dan Dampak Feature Negatif = menahan ke Stayed
                 impact = base_prob - new_prob
                 importance_results.append({
                     "Feature": col,
@@ -589,6 +592,7 @@ elif st.session_state.page == 6:
 
         if len(df_importance) > 0:
             if pred_result == "Resign":
+            # Jika Status "Resign", Ambil Feature dengan Dampak Positif Terbesar yang Mendorong Karyawan Mengundurkan Diri dari Pekerjaan
                 df_filtered = (
                     df_importance[df_importance["Dampak"] > 0]
                     .sort_values(by="Dampak", ascending=True)
@@ -598,6 +602,7 @@ elif st.session_state.page == 6:
                 bar_color = "#e74c3c"
                 x_values = df_filtered["Dampak"]
             else:
+                # Jika Status "Stayed", Ambil Feature dengan Dampak Negatif Terbesar yang Mendorong Karyawan Tidak Mengundurkan Diri dari Pekerjaan
                 df_filtered = df_importance[df_importance["Dampak"] < 0].copy()
                 df_filtered["Abs_Dampak"] = df_filtered["Dampak"].abs()
                 df_filtered = (

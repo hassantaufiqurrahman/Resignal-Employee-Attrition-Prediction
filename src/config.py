@@ -6,7 +6,7 @@ ROOT_DIR = os.path.dirname(CURRENT_DIR)
 
 # Path Folder & File
 DATA_DIR = os.path.join(ROOT_DIR, "data")
-MODELS_DIR = os.path.join(ROOT_DIR, "models")
+MODELS_DIR = os.path.join(ROOT_DIR, "model")
 
 # Path File Dataset & Hasil Split
 DATASET_PATH = os.path.join(DATA_DIR, "employee_attrition_dataset.csv")

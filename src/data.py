@@ -17,13 +17,7 @@ def get_train_test_data():
         df = df.drop_duplicates()
         print(f"Ditemukan dan menghapus {duplicate_count} baris duplikat.")
 
-    # Hapus Kolom yang Tidak Dipakai
-    existing_cols_to_drop = [col for col in COLS_TO_DROP if col in df.columns]
-    if existing_cols_to_drop:
-        df = df.drop(columns=existing_cols_to_drop)
-        print(f"Kolom berikut telah dihapus: {existing_cols_to_drop}")
-
-    # Split Data
+    # Split Dataset
     train_data, test_data = train_test_split(
         df, 
         test_size=0.2, 
@@ -31,13 +25,20 @@ def get_train_test_data():
         stratify=df[TARGET_COL]
     )
     
-    print(f"Jumlah baris data training: {train_data.shape}")
-    print(f"Jumlah baris data testing: {test_data.shape}")
+    print(f"Jumlah baris data training : {train_data.shape}")
+    print(f"Jumlah baris data testing  : {test_data.shape}")
 
-    # Memastikan Folder "data/"" Ada 
+    # Hapus Feature yang Tidak Dipakai Pada Data Training & Testing
+    existing_cols_to_drop = [col for col in COLS_TO_DROP if col in train_data.columns]
+    if existing_cols_to_drop:
+        train_data = train_data.drop(columns=existing_cols_to_drop)
+        test_data = test_data.drop(columns=existing_cols_to_drop)
+        print(f"Feature berikut telah dihapus dari data train dan test: {existing_cols_to_drop}")
+
+    # Memastikan Folder "data" Ada 
     os.makedirs(os.path.dirname(TRAIN_DATA_PATH), exist_ok=True)
 
-    # Simpan dan Ekspor Hasil Split Data ke Folder "/data"
+    # Simpan dan Ekspor Hasil Split Data ke Folder "data"
     train_data.to_csv(TRAIN_DATA_PATH, index=False)
     test_data.to_csv(TEST_DATA_PATH, index=False)
     print(f"File train_data.csv dan test_data.csv berhasil disimpan di folder data/")

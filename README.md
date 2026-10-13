@@ -17,30 +17,51 @@ Proyek ini dibangun untuk melakukan **deteksi dini (*early warning system*)** te
 
 ---
 
+## ⚙️ Employee Attrition Prediction Model Development
+
+### Prediction Model Preparation
+Dalam tahap ini dilakukan persiapan pembangunan model prediksi untuk membuat strategi pembangunan model prediksi karyawan resign menggunakan **jupyter notebook**:
+  1. **Data understanding**
+  2. **Exploratory data analysis**
+  3. **Baseline model evaluation**
+  4. **Data preprocessing**
+  5. **Training, hyperparameter tuning, and evaluation machine learning model**
+  6. **Employee status prediction and feature importance**
+
+### Prediction Model Development
+Setelah dilakukan persiapan pembangunan model prediksi, proses pembangunan model prediksi karyawan resign dibungkus ke dalam modul-modul skrip python terstruktur untuk diintegrasikan secara langsung dengan layanan **FastAPI** dan **Streamlit**:
+  1. `src/config.py`: Mengelola variabel konfigurasi, jalur folder (*paths*), dan parameter global proyek.
+  2. `src/data.py`: Mengeksekusi proses impor dataset, pengecekan dataset, pembagian dataset, dan penghapusan feature yang tidak digunakan dalam model machine learning.
+  3. `src/train.py`: Mengeksekusi evaluasi model baseline, data preprocessing, pelatihan, hyperparameter tuning, evaluasi, dan pemilihan model machine learning terbaik.
+  4. `src/predict.py`: Menyediakan fungsi prediksi untuk memuat model terbaik dan memproses input data baru dari API.
+  5. `app.py`: Mengeksekusi pencarian local feature importance menggunakan occlusion sensitivity pada page 6.
+
+---
+
 ## 🗂️ Repository Structure
 
 ```text
-Final Project Dibimbing DS/
+Resignal-Employee-Attrition-Prediction
 │
 ├── .github/workflows/ci.yml # Konfigurasi GitHub Actions untuk CI/CD pipeline
-├── api/
+├── api
 │   └── main.py              # Endpoint backend utama berbasis FastAPI
-├── data/
-│   ├── employee_attrition_dataset.csv # Dataset mentah keseluruhan
-│   ├── train_data.csv       # Dataset train hasil data.py
-│   └── test_data.csv        # Dataset test hasil data.py
-├── models/
-│   └── best_model.pkl       # Model Machine Learning terbaik hasil train.py
-├── notebook/
-│   └── employee_attrition_prediction.ipynb # Jupyter Notebook eksplorasi & modeling
-├── src/
+├── data
+│   ├── employee_attrition_dataset.csv # Dataset mentah
+│   ├── train_data.csv       # Data training hasil data.py
+│   └── test_data.csv        # Data testing hasil data.py
+├── model
+│   └── best_model.pkl       # Model machine learning terbaik hasil train.py
+├── notebook
+│   └── employee_attrition_prediction.ipynb # Persiapan pembangunan model prediksi karyawan resign
+├── src
 │   ├── config.py            # Konfigurasi parameter dan variabel global
 │   ├── crud.py              # Operasi database (create, read, & update database)
-│   ├── data.py              # Skrip pemrosesan awal dan pembersihan data
+│   ├── data.py              # Skrip impor dataset, pengecekan dataset, pembagian dataset, dan penghapusan feature yang tidak digunakan dalam model machine learning
 │   ├── database.py          # Konfigurasi koneksi database PostgreSQL (SQLAlchemy)
-│   ├── predict.py           # Modul logika inferensi model
+│   ├── predict.py           # Modul logika inferensi model prediksi
 │   ├── table.py             # Definisi skema tabel database (ORM models)
-│   └── train.py             # Skrip data preprocessing, pelatihan. hyperparameter tuning, dan evaluasi model Machine Learning
+│   └── train.py             # Skrip evaluasi model baseline, data preprocessing, pelatihan, hyperparameter tuning, evaluasi, dan pemilihan model machine learning terbaik
 │
 ├── .gitignore               # Daftar file/folder yang diabaikan oleh Git
 ├── app.py                   # Frontend aplikasi utama berbasis Streamlit
@@ -52,7 +73,7 @@ Final Project Dibimbing DS/
 
 ---
 
-## 🚀 How to Run (Local Deployment via Docker)
+## 🚀 Local Deployment Running Guideline
 
 ### 1. Clone Repository
 Buka terminal/command prompt, lalu jalankan perintah berikut untuk meng-clone repositori ini di device Anda:
@@ -62,11 +83,11 @@ git clone https://github.com/hassantaufiqurrahman/Resignal-Employee-Attrition-Pr
 cd Resignal-Employee-Attrition-Prediction
 ```
 
-### 2. Build dan Jalankan Container
+### 2. Build dan Running Container
 ```bash
-docker-compose up --build -d
+docker compose up --build
 ```
 
-### 3. Akses Layanan Lokal
+### 3. Access Local Services
 * Streamlit Frontend Application: http://localhost:8501
-* FastAPI Interactive Documentation (Swagger UI): http://localhost:8000/docs
+* FastAPI Backend Documentation (Swagger UI): http://localhost:8000/docs

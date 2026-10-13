@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Salin dan Instal Library Python
+# Salin dan Instal Library dari "requirements.txt"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
